@@ -1,0 +1,138 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 20px;
+  font-size: 14px;
+  font-family: "Roche Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #555;
+  max-width: 800px;
+}
+
+input,
+.button {
+  height: 35px;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 100%;
+  color: inherit;
+}
+input[disabled],
+.button[disabled] {
+  background-color: #eee;
+}
+
+input,
+select {
+  border: 1px solid #ccc;
+  width: 220px;
+}
+
+input::placeholder {
+  color: #bbb;
+}
+
+.input-example .form-text {
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: rgb(33, 37, 41, 0.75);
+}
+
+.button {
+  color: #fff;
+  background-color: #428bca;
+  border: 1px solid #357ebd;
+  margin-left: 5px;
+}
+.button:hover {
+  background-color: #3276b1;
+  border-color: #285e8e;
+  cursor: pointer;
+}
+
+.notice {
+  margin-top: 15px;
+}
+
+h3 {
+  margin-bottom: 0.5rem;
+  margin-top: 2rem;
+}
+
+p {
+  margin-top: 0.5rem;
+}
+
+code {
+  background-color: #ebebeb;
+  font-size: 0.9em;
+  margin: 0 2px;
+  padding: 2px 4px;
+}
+
+/* Dead Simple Grid */
+/* .row .row { margin: 0 -1.5em; }
+.col { padding: 0 1.5em; }
+
+.row:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+@media only screen { .col {
+    float: left;
+    width: 100%;
+    box-sizing: border-box;
+}}
+
+.col-6 {
+  width: 50%;
+}
+
+.col-auto {
+  width: auto;
+} */
+.row {
+  display: flex;
+  /* align-content: center; */
+  gap: 3em;
+  /* flex-wrap: wrap;
+  margin-left: -1.5em;
+  margin-right: -1.5em; */
+}
+
+.row.justify-content-start {
+  justify-content: flex-start;
+}
+
+.col {
+  /* flex: 1; */
+  flex: 0 1 auto;
+  /* padding: 0 1.5em; */
+}
+
+.col.align-items-center {
+  align-content: center;
+}
+
+#form-submission-heading {
+  display: none;
+  margin-bottom: 0;
+  margin-top: 3rem;
+}
+#form-submission-feedback {
+
+}
+
+pre.message {
+  margin: 0;
+}
+
+pre.message > .label {
+  font-weight: bold;
+  padding-right: 1em;
+}
