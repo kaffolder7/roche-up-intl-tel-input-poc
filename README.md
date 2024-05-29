@@ -1,7 +1,10 @@
 # International Telephone Number Input Formatting w/ Masking P.O.C.
-This example provides a proof of concept for various improvements requested in ticket [CFDIT-6977](https://rdcdigital.atlassian.net/browse/CFDIT-6977). It properly handles the following improvements:
+This example provides a proof of concept for various improvements requested in ticket [CFDIT-6977](https://rdcdigital.atlassian.net/browse/CFDIT-6977).
+
+It properly handles the following improvements:
 - Leveraging the *Preferred countries* field in the Drupal backend to control which countries are configured in the country-selector dropdown
 - Presetting the initial country format to use for a particular input (e.g. set via the *Initial country* field in the Drupal backend)
+- Swapped [`Inputmask`](https://robinherbots.github.io/Inputmask/#/) plugin for [`imask`](https://imask.js.org/) plugin, as it is lighter weight/half the size
 - Adapt input mask to varying phone number formats
     - The placeholder format is dynamically set via the *National mode* option in the [`intl-tel-input`](https://intl-tel-input.com/) JS plugin and set as the placeholder field
     - The lightweight, [`imask.js`](https://imask.js.org/) JS plugin is used to handle masking of the user-entered phone numbers.
