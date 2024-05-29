@@ -13,6 +13,10 @@ It properly handles the following improvements:
 
 Several examples are given in `index.html` that should cater towards the various 'states'/requirements as outlined in the user story.
 
+### Plugins utilized
+- [`intl-tel-input`](https://intl-tel-input.com/) &mdash; A JavaScript plugin for entering and validating international telephone numbers.
+- [`imask.js`](https://imask.js.org/) &mdash; A vanilla JavaScript input masking plugin that has zero external dependencies and handles pattern-masking.
+
 ## If you would like to run the development environment:
 
 1. Run `npm install` from project root directory.
