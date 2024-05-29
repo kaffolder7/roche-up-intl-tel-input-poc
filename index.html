@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="En-en" class="js">
+<head>
+    <title>Int'l Telephone Input POC</title>
+    <link href="../fonts/RocheSans-Regular.woff2" type="font/woff2" crossorigin="anonymous">
+    <link href="../fonts/RocheSans-Regular.woff" type="font/woff" crossorigin="anonymous">
+    <link href="../fonts/RocheSans-Medium.woff2" type="font/woff2" crossorigin="anonymous">
+    <link href="../fonts/RocheSans-Medium.woff" type="font/woff" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/demo.css">
+    <link rel="stylesheet" href="css/intlTelInput.min.css">
+    <style>
+    .iti {
+      --iti-path-flags-1x: url('../img/flags.png');
+      --iti-path-flags-2x: url('../img/flags@2x.png');
+      --iti-path-globe-1x: url('../img/globe.png');
+      --iti-path-globe-2x: url('../img/globe@2x.png');
+    }
+    </style>
+    <script src="js/intlTelInput.min.js"></script>
+    <script src="js/imask.min.js"></script>
+    <script>
+    function parents(el, selector) {
+      const parents = [];
+      while ((el = el.parentNode) && el !== document) {
+        if (!selector || el.matches(selector)) parents.push(el);
+      }
+      return parents.length > 1 ? parents : parents[0];
+    }
+
+    function ready(fn) {
+      if (document.readyState !== 'loading') {
+        fn();
+      } else {
+        document.addEventListener('DOMContentLoaded', fn);
+      }
+    }
+
+    ready(() => {
+      const debounce = (callback, wait) => {
+        let timeoutId = null;
+        return (...args) => {
+          window.clearTimeout(timeoutId);
+          timeoutId = window.setTimeout(() => {
+            callback.apply(null, args);
+          }, wait);
+        };
+      }
+      
+      // crude way to check if it's a mobile device, but gets the job done
+      const checkIfMobile = () => {
+        return typeof navigator !== "undefined" && typeof window !== "undefined" ? (
+          //* We cannot just test screen size as some smartphones/website meta tags will report desktop resolutions.
+          //* Note: to target Android Mobiles (and not Tablets), we must find 'Android' and 'Mobile'
+          /Android.+Mobile|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+          ) || window.innerWidth <= 500
+        ) : false;
+      }
+      let isMobile = checkIfMobile();
+      
+      // fetch all applicable int'l telephone inputs
+      const phoneInputs = document.querySelectorAll('.js-webform-telephone-international[type="text"]');
+      phoneInputs.forEach((el, i) => {
+
+        // get list of preferred countries, as defined in Drupal backend (if applicable) -- limits country-dropdown selector
+        const input = el;
+        const preferredCountriesEl = input.getAttribute('data-webform-telephone-international-preferred-countries');
+        const preferredCountries = preferredCountriesEl != null ? JSON.parse(preferredCountriesEl.replace(/'/g, '"')) : [];
+        const preferredCountriesCount = preferredCountries.length;
+        const forceCountryDropdown = input.classList.contains('force-dropdown') ? true : false;
+
+        // initialize `intl-tel-input` plugin for each instance of input
+        const iti = window.intlTelInput(input, {
+          allowDropdown: preferredCountriesCount > 1 && forceCountryDropdown ? true : false,
+          autoPlaceholder: 'aggressive',  // or 'polite'
+          customPlaceholder: (selectedCountryPlaceholder, selectedCountryData) => {
+            return selectedCountryPlaceholder.replaceAll(/\d/g, '#');
+          },
+          formatAsYouType: false,
+          formatOnDisplay: true,
+          hiddenInput: (telInputName) => {
+            field_name = input.getAttribute('name');
+            return {
+              phone: `${field_name}_e_164`,
+              country: `${field_name}_country_code`
+            };
+          },
+          initialCountry: input.getAttribute('data-webform-telephone-international-initial-country').trim().toLowerCase(),
+          nationalMode: true,
+          onlyCountries: preferredCountriesCount > 0 ? preferredCountries.map(e => e.toLowerCase()) : [],
+          separateDialCode: true,
+          strictMode: true,
+          useFullscreenPopup: preferredCountriesCount < 2 && !forceCountryDropdown ? false : (isMobile ? true : false),  // hide fullscreen popup selector if none or only one preferred country has been configured AND if `.force-dropdown` class has not been added to field
+          utilsScript: '/js/utils.js',
+        });
+
+        // enable `inputmask` plugin on init. & re-init. mask on country change (to account for change of country phone format)
+        iti.promise.then(() => {
+          if (!input.classList.contains('disable-mask')) {
+            const mask = IMask(input, {
+              mask: input.getAttribute('placeholder').replaceAll(/#/g, '0'),
+              lazy: true,
+              placeholderChar: '_',
+              overwrite: false,
+              skipInvalid: true,
+            });
+
+            input.addEventListener('focusin', (event) => {
+              mask.updateOptions({
+                lazy: false,
+              });
+            });
+            
+            input.addEventListener('countrychange', () => {
+              mask.updateOptions({
+                mask: input.getAttribute('placeholder').replaceAll(/#/g, '0'),
+              });
+              mask.typedValue = '';  // this line erases the previously input number, if the user changes the country format via dropdown
+              mask.updateValue();
+            });
+          }
+        });
+
+        const dropdownContainerEl = input.parentNode.querySelector('.iti__country-container');
+        const dropdownButtonEl = dropdownContainerEl.querySelector('.iti__selected-country');
+        const dialCodeEl = dropdownContainerEl.querySelector('.iti__selected-dial-code');
+        const dropdownArrowEl = dropdownContainerEl.querySelector('.iti__arrow');
+        const dropdownEl = dropdownContainerEl.querySelector('.iti__dropdown-content');
+        const countriesInDropdown = parents(input, '.iti--allow-dropdown').querySelectorAll('.iti__dropdown-content .iti__country-list > li.iti__country').length;
+        
+        // hide dropdown selector if none or only one preferred country has been configured AND if `.force-dropdown` class has not been added to field
+        if (preferredCountriesCount < 2 && !forceCountryDropdown) {
+          const inputStyles = getComputedStyle(input);
+          dropdownButtonEl.querySelector('.iti__selected-country-primary').style.display = 'none';
+          dropdownButtonEl.style.paddingLeft = parseInt(inputStyles.paddingRight, 10) * 2 + 'px';
+          dropdownButtonEl.style.cursor = 'default';
+          dialCodeEl.style.marginLeft = '0px';
+          dropdownEl.remove();
+          input.style.paddingLeft = (parseInt(inputStyles.paddingLeft, 10) - 34) + 'px';
+        }
+
+        // hide dropdown search if 5 or fewer preferred countries have been specified
+        const dropdownSearch = dropdownContainerEl.querySelector('.iti__search-input');
+        if (preferredCountriesCount < 6 && countriesInDropdown < 6 && dropdownSearch != null) {
+          dropdownSearch.style.display = 'none';
+        }
+
+        // simple input validation, checks if number is valid & displays error or submitted value next to input (for demo only)
+        document.querySelector('#sample-form').addEventListener('submit', (event) => {
+          event.preventDefault();
+          
+          const fullPhone = el.parentNode.querySelector('input[type="hidden"][name$="_e_164"]').value;
+          const messageEl = parents(el, '.row').querySelector('pre.message');
+          
+          if (!iti.isValidNumber()) {
+            messageEl.innerHTML = 'Invalid number. Please try again.';
+          } else {
+            messageEl.innerHTML = `Submitted hidden input value: ${fullPhone}`;
+          }
+        });
+      });
+
+      // do some stuff on window resize, debounce for performance gains
+      const handleResizeEvent = debounce((event) => {
+        isMobile = checkIfMobile();
+      }, 250);
+      window.addEventListener('resize', handleResizeEvent);
+    });
+    </script>
+</head>
+<body>
+    <form id="sample-form">
+        <h1>Int'l. Telephone w/ Input Masking P.O.C.</h1>
+
+        <div class="input-example">
+            <h3>Example 1: &nbsp;Single-country site (Default)</h3>
+            <p>When no preferred countries have been set in Drupal UI, hide dropdown and use initial country (e.g. United Kingdom / GB).</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international form-tel required form-control" data-webform-telephone-international-initial-country="GB" type="text" aria-describedby="phoneHint1" name="phone_number1" id="phone1">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+            <div id="phoneHint1" class="form-text">[Locked to format: UK]</div>
+        </div>
+
+        <div class="input-example">
+            <h3>Example 2: &nbsp;Force/override display of dropdown</h3>
+            <p>Overrides the default setting of hiding the country-selector dropdown (which is by default hidden for single-preferred-country and non-defined preferred countries).<br>Configure by adding a class of <code>.force-dropdown</code> to input form field element, from Drupal UI.</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international force-dropdown form-tel required form-control" data-webform-telephone-international-initial-country="US" type="text" aria-describedby="phone2Hint" name="phone_number2" id="phone2">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+            <div id="phone2Hint" class="form-text">[Init. format: US]</div>
+        </div>
+
+        <div class="input-example">
+            <h3>Example 3: &nbsp;Prefers single-country</h3>
+            <p>When only one preferred country has been set in Drupal UI, hide dropdown and use that country's dial code.</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international form-tel required form-control" data-webform-telephone-international-initial-country="CH" data-webform-telephone-international-preferred-countries="['CH']" type="text" aria-describedby="phone3Hint" name="phone_number3" id="phone3">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+            <div id="phone3Hint" class="form-text">[Locked to format: CH]</div>
+        </div>
+
+        <div class="input-example">
+            <h3>Example 4: &nbsp;Preferred countries in Dropdown (&lt; 6 countries)</h3>
+            <p>When two or more countries have been defined in Drupal backend, search input is hidden from country-selector dropdown.</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international form-tel required form-control" data-webform-telephone-international-initial-country="US" data-webform-telephone-international-preferred-countries="['CA','FR','PT','US']" type="text" name="phone_number4" id="phone4" placeholder="e.g. your mobile no.">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-example">
+            <h3>Example 5: &nbsp;Preferred countries in Dropdown (&ge; 6 countries)</h3>
+            <p>When more than six countries have been defined in Drupal backend, search input is displayed in country-selector dropdown.</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international form-tel required form-control" data-webform-telephone-international-initial-country="US" data-webform-telephone-international-preferred-countries="['AR','AU','CA','CH','FR','GB','NL','PL','PT','RO','US']" type="text" name="phone_number5" id="phone5" placeholder="e.g. your mobile no.">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-example">
+            <h3>Example 6: &nbsp;Disable input masking</h3>
+            <p>Configure by adding a class of <code>.disable-mask</code> to input element, from Drupal UI.</p>
+            <div class="row justify-content-start">
+                <div class="col">
+                    <input class="js-webform-telephone-international webform-webform-telephone-international disable-mask form-tel required form-control" data-webform-telephone-international-initial-country="US" type="text" aria-describedby="phone6Hint" name="phone_number6" id="phone6">
+                </div>
+                <div class="col align-items-center">
+                    <pre class="message"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:3rem;">
+            <button class="button" type="submit">Submit</button>
+        </div>
+    </form>
+</body>
+</html>
